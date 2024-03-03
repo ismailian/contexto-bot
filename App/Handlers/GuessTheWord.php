@@ -26,7 +26,7 @@ class GuessTheWord extends BaseEvent
       $feedbackId = SessionManager::get('feedback') ?? null;
 
       $this->telegram->deleteMessage($messageId);
-      if (feedbackId) {
+      if ($feedbackId) {
         $this->telegram->deleteMessage($feedbackId);
       }
 
