@@ -355,7 +355,7 @@ class GuessTheWord extends BaseEvent
               ]);
             }
 
-            $this->telegram->editMessage(SessionManager::get('message_id'), Misc::getTemplate(true));
+            $this->telegram->editMessage(SessionManager::get('message_id'), Misc::getTemplate($hasWon));
         }
 
     }
