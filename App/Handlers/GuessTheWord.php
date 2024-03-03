@@ -189,6 +189,7 @@ class GuessTheWord extends BaseEvent
             $this->telegram->sendMessage('Please try to guess at least 3 words!');
 
             SessionManager::set([
+              'message_id' => SessionManager::get('message_id'),
               'feedback' => $this->telegram->getLastMessageId(),
               'user' => SessionManager::get('user') ?? [],
               'history' => SessionManager::get('history') ?? [],
