@@ -187,6 +187,14 @@ class GuessTheWord extends BaseEvent
         /** min attempts required */
         if (count(SessionManager::get('game.history')) < 3) {
             $this->telegram->sendMessage('Please try to guess at least 3 words!');
+
+            SessionManager::set([
+              'feedback' => $this->telegram->getLastMessageId(),
+              'user' => SessionManager::get('user') ?? [],
+              'history' => SessionManager::get('history') ?? [],
+              'game' => SessionManager::get('game') ?? [],
+            ]);
+
             return;
         }
 
