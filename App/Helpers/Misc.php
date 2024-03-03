@@ -135,6 +135,17 @@ class Misc
     }
 
     /**
+    * get greeting template
+    *
+    * @param string $firstName user first name
+    * @return string returns a compiled greeting template
+    */
+    public function getGreeting(string $firstName): string
+    {
+        return "Hello, $firstname! and welcome to \nGuess The Word game.\n\nStart playing the game by clicking the menu button and clicking /play option.\nIf you need a hint, click /hint. If you can't figure out the word you can click /giveup option and get the correct answer.";
+    }
+
+    /**
      * get game template
      *
      * @param bool $isCorrectWord
