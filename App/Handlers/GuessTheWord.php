@@ -22,16 +22,16 @@ class GuessTheWord extends BaseEvent
     #[Command('start')]
     public function welcome(): void
     {
-      $messageId = $this->event['message']['message_id'];
-      $feedbackId = SessionManager::get('feedback') ?? null;
-
-      $this->telegram->deleteMessage($messageId);
-      if ($feedbackId) {
-        $this->telegram->deleteMessage($feedbackId);
-      }
-
-      $greeting = Misc::getGreeting($this->event['message']['from']['first_name']);
-      $this->telegram->sendMessage($greeting);
+      // $messageId = $this->event['message']['message_id'];
+      // $feedbackId = SessionManager::get('feedback') ?? null;
+      //
+      // $this->telegram->deleteMessage($messageId);
+      // if ($feedbackId) {
+      //   $this->telegram->deleteMessage($feedbackId);
+      // }
+      //
+      // $greeting = Misc::getGreeting($this->event['message']['from']['first_name']);
+      // $this->telegram->sendMessage($greeting);
     }
 
     /**
