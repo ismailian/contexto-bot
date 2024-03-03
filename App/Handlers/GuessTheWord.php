@@ -42,20 +42,20 @@ class GuessTheWord extends BaseEvent
         }
 
         /** check if game has already been played */
-        $history = SessionManager::get('history') ?? [];
-        $matches = !empty(array_filter($history, fn($g) => $g['id'] == $gameId));
-        if (!empty($history) && !empty($matches)) {
-          $this->telegram->sendMessage("You already played this game today: #$gameId");
-
-          SessionManager::set([
-            'feedback' => $this->telegram->getLastMessageId(),
-            'user' => SessionManager::get('user') ?? [],
-            'history' => SessionManager::get('history') ?? [],
-            'game' => SessionManager::get('game') ?? [],
-          ]);
-
-          return;
-        }
+        // $history = SessionManager::get('history') ?? [];
+        // $matches = !empty(array_filter($history, fn($g) => $g['id'] == $gameId));
+        // if (!empty($history) && !empty($matches)) {
+        //   $this->telegram->sendMessage("You already played this game today: #$gameId");
+        //
+        //   SessionManager::set([
+        //     'feedback' => $this->telegram->getLastMessageId(),
+        //     'user' => SessionManager::get('user') ?? [],
+        //     'history' => SessionManager::get('history') ?? [],
+        //     'game' => SessionManager::get('game') ?? [],
+        //   ]);
+        //
+        //   return;
+        // }
 
         SessionManager::start()->set([
             'user' => [
