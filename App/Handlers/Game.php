@@ -11,7 +11,7 @@ use TeleBot\System\Types\InlineKeyboard;
 use TeleBot\System\SessionManager;
 use TeleBot\App\Services\ContextoApi;
 
-class GuessTheWord extends BaseEvent
+class Game extends BaseEvent
 {
 
     /**
