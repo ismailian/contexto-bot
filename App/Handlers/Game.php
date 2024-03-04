@@ -11,27 +11,28 @@ use TeleBot\System\Types\InlineKeyboard;
 use TeleBot\System\SessionManager;
 use TeleBot\App\Services\ContextoApi;
 
-class GuessTheWord extends BaseEvent
+class Game extends BaseEvent
 {
 
     /**
      * handle start command
      *
      * @return void
+     * @throws Exception
      */
     #[Command('start')]
     public function welcome(): void
     {
-      $messageId = $this->event['message']['message_id'];
-      $feedbackId = SessionManager::get('feedback') ?? null;
+        $messageId = $this->event['message']['message_id'];
+        $feedbackId = SessionManager::get('feedback') ?? null;
 
-      $this->telegram->deleteMessage($messageId);
-      if ($feedbackId) {
-        $this->telegram->deleteMessage($feedbackId);
-      }
+        $this->telegram->deleteMessage($messageId);
+        if ($feedbackId) {
+            $this->telegram->deleteMessage($feedbackId);
+        }
 
-      $greeting = Misc::getGreeting($this->event['message']['from']['first_name']);
-      $this->telegram->sendMessage($greeting);
+        $greeting = Misc::getGreeting($this->event['message']['from']['first_name']);
+        $this->telegram->sendMessage($greeting);
     }
 
     /**
@@ -49,8 +50,8 @@ class GuessTheWord extends BaseEvent
 
         $this->telegram->deleteMessage($messageId);
         if ($feedbackId) {
-          $this->telegram->deleteMessage($feedbackId);
-          $feedbackId = null;
+            $this->telegram->deleteMessage($feedbackId);
+            $feedbackId = null;
         }
 
         /** check if game has already been played */
@@ -111,7 +112,6 @@ class GuessTheWord extends BaseEvent
     #[Command('hint')]
     public function hint(): void
     {
-        /** delete last feedback message */
         $feedbackId = null;
         if (SessionManager::get('feedback')) {
             $this->telegram->deleteMessage(SessionManager::get('feedback'));
@@ -127,10 +127,10 @@ class GuessTheWord extends BaseEvent
             $this->telegram->sendMessage('Please start a game first!');
 
             SessionManager::set([
-              'feedback' => $this->telegram->getLastMessageId(),
-              'user' => SessionManager::get('user') ?? [],
-              'history' => SessionManager::get('history') ?? [],
-              'game' => SessionManager::get('game') ?? [],
+                'feedback' => $this->telegram->getLastMessageId(),
+                'user' => SessionManager::get('user') ?? [],
+                'history' => SessionManager::get('history') ?? [],
+                'game' => SessionManager::get('game') ?? [],
             ]);
 
             return;
@@ -187,10 +187,10 @@ class GuessTheWord extends BaseEvent
             $this->telegram->sendMessage('Please start a game first!');
 
             SessionManager::set([
-              'feedback' => $this->telegram->getLastMessageId(),
-              'user' => SessionManager::get('user') ?? [],
-              'history' => SessionManager::get('history') ?? [],
-              'game' => SessionManager::get('game') ?? [],
+                'feedback' => $this->telegram->getLastMessageId(),
+                'user' => SessionManager::get('user') ?? [],
+                'history' => SessionManager::get('history') ?? [],
+                'game' => SessionManager::get('game') ?? [],
             ]);
 
             return;
@@ -201,11 +201,11 @@ class GuessTheWord extends BaseEvent
             $this->telegram->sendMessage('Please try to guess at least 3 words!');
 
             SessionManager::set([
-              'message_id' => SessionManager::get('message_id'),
-              'feedback' => $this->telegram->getLastMessageId(),
-              'user' => SessionManager::get('user') ?? [],
-              'history' => SessionManager::get('history') ?? [],
-              'game' => SessionManager::get('game') ?? [],
+                'message_id' => SessionManager::get('message_id'),
+                'feedback' => $this->telegram->getLastMessageId(),
+                'user' => SessionManager::get('user') ?? [],
+                'history' => SessionManager::get('history') ?? [],
+                'game' => SessionManager::get('game') ?? [],
             ]);
 
             return;
@@ -239,11 +239,11 @@ class GuessTheWord extends BaseEvent
             ], 'completed');
 
             $this->telegram->withOptions([
-              'reply_markup' => [
-                'inline_keyboard' => (new InlineKeyboard)
-                    ->addButton('👎👎 You lost 👎👎', 'lost', InlineKeyboard::CALLBACK_DATA)
-                    ->toArray(),
-              ]
+                'reply_markup' => [
+                    'inline_keyboard' => (new InlineKeyboard)
+                        ->addButton('👎👎 You lost 👎👎', 'lost', InlineKeyboard::CALLBACK_DATA)
+                        ->toArray(),
+                ]
             ]);
 
             $this->telegram->editMessage(SessionManager::get('message_id'), Misc::getTemplate(true));
@@ -302,10 +302,10 @@ class GuessTheWord extends BaseEvent
             $this->telegram->sendMessage('Please start a game first!');
 
             SessionManager::set([
-              'feedback' => $this->telegram->getLastMessageId(),
-              'user' => SessionManager::get('user') ?? [],
-              'history' => SessionManager::get('history') ?? [],
-              'game' => SessionManager::get('game') ?? [],
+                'feedback' => $this->telegram->getLastMessageId(),
+                'user' => SessionManager::get('user') ?? [],
+                'history' => SessionManager::get('history') ?? [],
+                'game' => SessionManager::get('game') ?? [],
             ]);
 
             return;
@@ -316,11 +316,11 @@ class GuessTheWord extends BaseEvent
             $this->telegram->sendMessage('Please try a single word at a time!');
 
             SessionManager::set([
-              'message_id' => SessionManager::get('message_id'),
-              'feedback' => $this->telegram->getLastMessageId(),
-              'user' => SessionManager::get('user') ?? [],
-              'history' => SessionManager::get('history') ?? [],
-              'game' => SessionManager::get('game') ?? [],
+                'message_id' => SessionManager::get('message_id'),
+                'feedback' => $this->telegram->getLastMessageId(),
+                'user' => SessionManager::get('user') ?? [],
+                'history' => SessionManager::get('history') ?? [],
+                'game' => SessionManager::get('game') ?? [],
             ]);
 
             return;
@@ -358,13 +358,13 @@ class GuessTheWord extends BaseEvent
             ], ($hasWon ? 'completed' : 'playing'));
 
             if ($hasWon) {
-              $this->telegram->withOptions([
-                'reply_markup' => [
-                  'inline_keyboard' => (new InlineKeyboard)
-                      ->addButton('🎉🎉 You won 🎉🎉', 'won', InlineKeyboard::CALLBACK_DATA)
-                      ->toArray(),
-                ]
-              ]);
+                $this->telegram->withOptions([
+                    'reply_markup' => [
+                        'inline_keyboard' => (new InlineKeyboard)
+                            ->addButton('🎉🎉 You won 🎉🎉', 'won', InlineKeyboard::CALLBACK_DATA)
+                            ->toArray(),
+                    ]
+                ]);
             }
 
             $this->telegram->editMessage(SessionManager::get('message_id'), Misc::getTemplate($hasWon));
