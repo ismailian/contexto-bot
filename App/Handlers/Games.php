@@ -31,7 +31,7 @@ class Games extends BaseEvent
 
         for ($i = 0; $i < 9; $i++) {
             $lastGameId -= 1;
-            if ($lastGameId = 0) break;
+            if ($lastGameId == 0) break;
             $inlineKeyboard->addButton("#$lastGameId", ['game:id' => $lastGameId], InlineKeyboard::CALLBACK_DATA);
         }
 
@@ -40,8 +40,8 @@ class Games extends BaseEvent
                 'inline_keyboard' => [
                     ...$inlineKeyboard->toArray(),
                     ...(new InlineKeyboard)
-                        ->addButton('<<', ['list:next' => ''], InlineKeyboard::CALLBACK_DATA)
-                        ->addButton('>>', ['list:back' => $lastGameId], InlineKeyboard::CALLBACK_DATA)
+                        ->addButton('<<', ['list:back' => $lastGameId], InlineKeyboard::CALLBACK_DATA)
+                        ->addButton('>>', ['list:next' => ''], InlineKeyboard::CALLBACK_DATA)
                         ->toArray()
                 ]
             ]
@@ -66,12 +66,14 @@ class Games extends BaseEvent
     {
         $currentGameId = Misc::getTodaysGameId();
         $lastGameId = $query('list:next');
+        $feedbackId = SessionManager::get('feedback') ?? null;
         $inlineKeyboard = new InlineKeyboard();
 
-        for ($i = 0; $i < 9; $i++) {
-            $lastGameId += 1;
-            if ($lastGameId >= $currentGameId) break;
-            $inlineKeyboard->addButton("#$lastGameId", ['game:id' => $lastGameId], InlineKeyboard::CALLBACK_DATA);
+        if (empty($feedbackId) || empty($lastGameId)) return;
+
+        for ($i = 9; $i > 0; $i--) {
+            $lastId = ($lastGameId - 1) + $i;
+            $inlineKeyboard->addButton("#$lastId", ['game:id' => $lastId], InlineKeyboard::CALLBACK_DATA);
         }
 
         $this->telegram->withOptions([
@@ -79,12 +81,16 @@ class Games extends BaseEvent
                 'inline_keyboard' => [
                     ...$inlineKeyboard->toArray(),
                     ...(new InlineKeyboard)
-                        ->addButton('<<', ['list:next' => $lastGameId], InlineKeyboard::CALLBACK_DATA)
-                        ->addButton('>>', ['list:back' => $lastGameId - 9], InlineKeyboard::CALLBACK_DATA)
+                        ->addButton('<<', [
+                            'list:back' => $lastGameId - 9
+                        ], InlineKeyboard::CALLBACK_DATA)
+                        ->addButton('>>', [
+                            'list:next' => (int)($lastGameId >= $currentGameId ? 0 : $lastGameId)
+                        ], InlineKeyboard::CALLBACK_DATA)
                         ->toArray()
                 ]
             ]
-        ])->sendMessage('Choose a game to play:');
+        ])->editMessage($feedbackId, 'Choose a game to play:');
 
         $session = SessionManager::get();
         $session['feedback'] = $this->telegram->getLastMessageId();
@@ -104,11 +110,13 @@ class Games extends BaseEvent
     public function back(IncomingCallbackQuery $query): void
     {
         $lastGameId = $query('list:back');
-        $inlineKeyboard = new InlineKeyboard();
+        $feedbackId = SessionManager::get('feedback') ?? null;
+        if (empty($feedbackId) || empty($lastGameId)) return;
 
+        $inlineKeyboard = new InlineKeyboard();
         for ($i = 0; $i < 9; $i++) {
             $lastGameId -= 1;
-            if ($lastGameId = 0) break;
+            if ($lastGameId == 0) break;
             $inlineKeyboard->addButton("#$lastGameId", ['game:id' => $lastGameId], InlineKeyboard::CALLBACK_DATA);
         }
 
@@ -117,16 +125,14 @@ class Games extends BaseEvent
                 'inline_keyboard' => [
                     ...$inlineKeyboard->toArray(),
                     ...(new InlineKeyboard)
-                        ->addButton('<<', ['list:next' => $lastGameId + 9], InlineKeyboard::CALLBACK_DATA)
-                        ->addButton('>>', ['list:back' => $lastGameId], InlineKeyboard::CALLBACK_DATA)
+                        ->addButton('<<', ['list:back' => $lastGameId], InlineKeyboard::CALLBACK_DATA)
+                        ->addButton('>>', ['list:next' => $lastGameId + 9], InlineKeyboard::CALLBACK_DATA)
                         ->toArray()
                 ]
             ]
-        ])->sendMessage('Choose a game to play:');
+        ])->editMessage($feedbackId, 'Choose a game to play:');
 
         $session = SessionManager::get();
-        $session['feedback'] = $this->telegram->getLastMessageId();
-
         unset($session['state']);
         SessionManager::set($session, SessionManager::get('state'));
     }
