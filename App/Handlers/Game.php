@@ -15,27 +15,6 @@ class Game extends BaseEvent
 {
 
     /**
-     * handle start command
-     *
-     * @return void
-     * @throws Exception
-     */
-    #[Command('start')]
-    public function welcome(): void
-    {
-        $messageId = $this->event['message']['message_id'];
-        $feedbackId = SessionManager::get('feedback') ?? null;
-
-        $this->telegram->deleteMessage($messageId);
-        if ($feedbackId) {
-            $this->telegram->deleteMessage($feedbackId);
-        }
-
-        $greeting = Misc::getGreeting($this->event['message']['from']['first_name']);
-        $this->telegram->sendMessage($greeting);
-    }
-
-    /**
      * handle play command
      *
      * @return void
@@ -46,7 +25,8 @@ class Game extends BaseEvent
     {
         $gameId = Misc::getTodaysGameId();
         $messageId = $this->event['message']['message_id'];
-        $feedbackId = SessionManager::get('feedback') ?? null;
+        $session = SessionManager::get();
+        $feedbackId = $session['feedback'] ?? null;
 
         $this->telegram->deleteMessage($messageId);
         if ($feedbackId) {
@@ -55,20 +35,20 @@ class Game extends BaseEvent
         }
 
         /** check if game has already been played */
-        // $history = SessionManager::get('history') ?? [];
-        // $matches = !empty(array_filter($history, fn($g) => $g['id'] == $gameId));
-        // if (!empty($history) && !empty($matches)) {
-        //   $this->telegram->sendMessage("You already played this game today: #$gameId");
-        //
-        //   SessionManager::set([
-        //     'feedback' => $this->telegram->getLastMessageId(),
-        //     'user' => SessionManager::get('user') ?? [],
-        //     'history' => SessionManager::get('history') ?? [],
-        //     'game' => SessionManager::get('game') ?? [],
-        //   ]);
-        //
-        //   return;
-        // }
+        $history = SessionManager::get('history') ?? [];
+        $matches = !empty(array_filter($history, fn($g) => $g['id'] == $gameId));
+        if (!empty($history) && !empty($matches)) {
+            $this->telegram->sendMessage("You already played this game today: #$gameId");
+
+            SessionManager::set([
+                'feedback' => $this->telegram->getLastMessageId(),
+                'user' => SessionManager::get('user') ?? [],
+                'history' => SessionManager::get('history') ?? [],
+                'game' => SessionManager::get('game') ?? [],
+            ]);
+
+            return;
+        }
 
         SessionManager::start()->set([
             'user' => [
@@ -92,15 +72,30 @@ class Game extends BaseEvent
             ],
         ]);
 
+
+        $session['feedback'] = null;
+        $session['game'] = [
+            'id' => $gameId,
+            'guesses' => 0,
+            'hints' => 0,
+            'distance' => 0,
+            'last_word' => 'N/A',
+            'history' => [],
+            'progress' => [
+                'value' => 0,
+                'type' => 'N'
+            ],
+        ];
+
+        unset($session['state']);
+        SessionManager::set($session, SessionManager::get('state'));
+
         $this->telegram->sendMessage(Misc::getTemplate());
 
-        SessionManager::set([
-            'message_id' => $this->telegram->getLastMessageId(),
-            'user' => SessionManager::get('user'),
-            'history' => SessionManager::get('history'),
-            'feedback' => SessionManager::get('feedback'),
-            'game' => SessionManager::get('game'),
-        ]);
+        $session['message_id'] = $this->telegram->getLastMessageId();
+
+        unset($session['state']);
+        SessionManager::set($session, SessionManager::get('state'));
     }
 
     /**
@@ -129,6 +124,7 @@ class Game extends BaseEvent
             SessionManager::set([
                 'feedback' => $this->telegram->getLastMessageId(),
                 'user' => SessionManager::get('user') ?? [],
+                'settings' => SessionManager::get('settings') ?? [],
                 'history' => SessionManager::get('history') ?? [],
                 'game' => SessionManager::get('game') ?? [],
             ]);
@@ -142,7 +138,8 @@ class Game extends BaseEvent
             SessionManager::set([
                 'message_id' => SessionManager::get('message_id'),
                 'user' => SessionManager::get('user'),
-                'history' => SessionManager::get('history'),
+                'settings' => SessionManager::get('settings'),
+                'history' => SessionManager::get('history') ?? [],
                 'feedback' => $feedbackId,
                 'game' => [
                     'id' => SessionManager::get('game.id'),
@@ -189,6 +186,7 @@ class Game extends BaseEvent
             SessionManager::set([
                 'feedback' => $this->telegram->getLastMessageId(),
                 'user' => SessionManager::get('user') ?? [],
+                'settings' => SessionManager::get('settings') ?? [],
                 'history' => SessionManager::get('history') ?? [],
                 'game' => SessionManager::get('game') ?? [],
             ]);
@@ -204,6 +202,7 @@ class Game extends BaseEvent
                 'message_id' => SessionManager::get('message_id'),
                 'feedback' => $this->telegram->getLastMessageId(),
                 'user' => SessionManager::get('user') ?? [],
+                'settings' => SessionManager::get('settings') ?? [],
                 'history' => SessionManager::get('history') ?? [],
                 'game' => SessionManager::get('game') ?? [],
             ]);
@@ -217,8 +216,9 @@ class Game extends BaseEvent
                 'message_id' => SessionManager::get('message_id'),
                 'feedback' => $feedbackId,
                 'user' => SessionManager::get('user'),
+                'settings' => SessionManager::get('settings') ?? [],
                 'history' => [
-                    ...SessionManager::get('history'), [
+                    ...(SessionManager::get('history') ?? []), [
                         'id' => SessionManager::get('game.id'),
                         'status' => 'lost',
                         'date' => date('Y-m-d H:i:s A')
@@ -272,6 +272,7 @@ class Game extends BaseEvent
 
         SessionManager::set([
             'user' => SessionManager::get('user'),
+            'settings' => SessionManager::get('settings'),
             'history' => SessionManager::get('history'),
         ]);
     }
@@ -304,6 +305,7 @@ class Game extends BaseEvent
             SessionManager::set([
                 'feedback' => $this->telegram->getLastMessageId(),
                 'user' => SessionManager::get('user') ?? [],
+                'settings' => SessionManager::get('settings') ?? [],
                 'history' => SessionManager::get('history') ?? [],
                 'game' => SessionManager::get('game') ?? [],
             ]);
@@ -319,6 +321,7 @@ class Game extends BaseEvent
                 'message_id' => SessionManager::get('message_id'),
                 'feedback' => $this->telegram->getLastMessageId(),
                 'user' => SessionManager::get('user') ?? [],
+                'settings' => SessionManager::get('settings') ?? [],
                 'history' => SessionManager::get('history') ?? [],
                 'game' => SessionManager::get('game') ?? [],
             ]);
@@ -342,6 +345,7 @@ class Game extends BaseEvent
                 'message_id' => SessionManager::get('message_id'),
                 'feedback' => $feedbackId,
                 'user' => SessionManager::get('user'),
+                'settings' => SessionManager::get('settings'),
                 'history' => $history,
                 'game' => [
                     'id' => SessionManager::get('game.id'),
