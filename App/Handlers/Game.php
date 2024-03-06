@@ -40,40 +40,13 @@ class Game extends BaseEvent
         if (!empty($history) && !empty($matches)) {
             $this->telegram->sendMessage("You already played this game today: #$gameId");
 
-            SessionManager::set([
-                'feedback' => $this->telegram->getLastMessageId(),
-                'user' => SessionManager::get('user') ?? [],
-                'history' => SessionManager::get('history') ?? [],
-                'game' => SessionManager::get('game') ?? [],
-            ]);
+            $session['feedback'] = $this->telegram->getLastMessageId();
+            SessionManager::set($session, SessionManager::get('state'));
 
             return;
         }
 
-        SessionManager::start()->set([
-            'user' => [
-                'firstname' => $this->event['message']['from']['first_name'],
-                'lastname' => $this->event['message']['from']['last_name'] ?? null,
-                'username' => $this->event['message']['from']['username'] ?? null,
-            ],
-            'history' => SessionManager::get('history') ?? [],
-            'feedback' => $feedbackId,
-            'game' => [
-                'id' => $gameId,
-                'guesses' => 0,
-                'hints' => 0,
-                'distance' => 0,
-                'last_word' => 'N/A',
-                'history' => [],
-                'progress' => [
-                    'value' => 0,
-                    'type' => 'N'
-                ],
-            ],
-        ]);
-
-
-        $session['feedback'] = null;
+        $session['feedback'] = $feedbackId;
         $session['game'] = [
             'id' => $gameId,
             'guesses' => 0,
@@ -87,12 +60,8 @@ class Game extends BaseEvent
             ],
         ];
 
-        unset($session['state']);
-        SessionManager::set($session, SessionManager::get('state'));
-
-        $this->telegram->sendMessage(Misc::getTemplate());
-
-        $session['message_id'] = $this->telegram->getLastMessageId();
+        $this->telegram->sendMessage(Misc::getTemplate($session['game']));
+        $session['game_session'] = $this->telegram->getLastMessageId();
 
         unset($session['state']);
         SessionManager::set($session, SessionManager::get('state'));
@@ -107,55 +76,48 @@ class Game extends BaseEvent
     #[Command('hint')]
     public function hint(): void
     {
-        $feedbackId = null;
-        if (SessionManager::get('feedback')) {
-            $this->telegram->deleteMessage(SessionManager::get('feedback'));
-        }
+        $session = SessionManager::get();
+        $feedbackId = $session['feedback'] ?? null;
+        if ($feedbackId) $this->telegram->deleteMessage($feedbackId);
 
         $messageId = $this->event['message']['message_id'];
         $this->telegram->deleteMessage($messageId);
 
         /** check if game is initiated */
-        $isInitiated = !empty(SessionManager::get('game'));
-        $playing = in_array(SessionManager::get('state'), ['started', 'playing']);
+        $isInitiated = !empty($session['game']);
+        $playing = in_array($session['state'], ['started', 'playing']);
         if (!$isInitiated || !$playing) {
             $this->telegram->sendMessage('Please start a game first!');
 
-            SessionManager::set([
-                'feedback' => $this->telegram->getLastMessageId(),
-                'user' => SessionManager::get('user') ?? [],
-                'settings' => SessionManager::get('settings') ?? [],
-                'history' => SessionManager::get('history') ?? [],
-                'game' => SessionManager::get('game') ?? [],
-            ]);
+            $session['feedback'] = $this->telegram->getLastMessageId();
+            $session['game'] = [];
 
+            unset($session['state']);
+            SessionManager::set($session, SessionManager::get('state'));
             return;
         }
 
         $tipDistance = Misc::getNextTipDistance((SessionManager::get('game.history') ?? []));
         $hint = ContextoApi::getHint(SessionManager::get('game.id'), $tipDistance);
         if ($hint) {
-            SessionManager::set([
-                'message_id' => SessionManager::get('message_id'),
-                'user' => SessionManager::get('user'),
-                'settings' => SessionManager::get('settings'),
-                'history' => SessionManager::get('history') ?? [],
-                'feedback' => $feedbackId,
-                'game' => [
-                    'id' => SessionManager::get('game.id'),
-                    'guesses' => SessionManager::get('game.guesses') + 1,
-                    'hints' => SessionManager::get('game.hints') + 1,
-                    'distance' => $hint->distance,
-                    'last_word' => $hint->word,
-                    'progress' => (array)Misc::getRate($hint->distance),
-                    'history' => [
-                        ...(SessionManager::get('game.history') ?? []),
-                        [$hint->word, $hint->distance],
-                    ],
+            $session['feedback'] = $feedbackId;
+            $session['game'] = [
+                'id' => SessionManager::get('game.id'),
+                'guesses' => SessionManager::get('game.guesses') + 1,
+                'hints' => SessionManager::get('game.hints') + 1,
+                'distance' => $hint->distance,
+                'last_word' => $hint->word,
+                'progress' => (array)Misc::getRate($hint->distance),
+                'history' => [
+                    ...(SessionManager::get('game.history') ?? []),
+                    [$hint->word, $hint->distance],
                 ],
-            ], 'playing');
+            ];
 
-            $this->telegram->editMessage(SessionManager::get('message_id'), Misc::getTemplate());
+            unset($session['state']);
+            SessionManager::set($session, 'playing');
+
+            $this->telegram->editMessage($session['game_session'], Misc::getTemplate($session['game']));
         }
     }
 
@@ -168,85 +130,70 @@ class Game extends BaseEvent
     #[Command('giveup')]
     public function giveUp(): void
     {
-        /** delete last feedback message */
-        $feedbackId = null;
-        if (SessionManager::get('feedback')) {
-            $this->telegram->deleteMessage(SessionManager::get('feedback'));
-        }
+        $session = SessionManager::get();
+        $feedbackId = $session['feedback'] ?? null;
+        if ($feedbackId) $this->telegram->deleteMessage($feedbackId);
 
         $messageId = $this->event['message']['message_id'];
         $this->telegram->deleteMessage($messageId);
 
         /** check if game is initiated */
-        $isInitiated = !empty(SessionManager::get('game'));
-        $playing = in_array(SessionManager::get('state'), ['started', 'playing']);
+        $isInitiated = !empty($session['game']);
+        $playing = in_array($session['state'], ['started', 'playing']);
         if (!$isInitiated || !$playing) {
             $this->telegram->sendMessage('Please start a game first!');
 
-            SessionManager::set([
-                'feedback' => $this->telegram->getLastMessageId(),
-                'user' => SessionManager::get('user') ?? [],
-                'settings' => SessionManager::get('settings') ?? [],
-                'history' => SessionManager::get('history') ?? [],
-                'game' => SessionManager::get('game') ?? [],
-            ]);
+            $session['feedback'] = $this->telegram->getLastMessageId();
+            $session['game'] = [];
 
+            unset($session['state']);
+            SessionManager::set($session, SessionManager::get('state'));
             return;
         }
 
         /** min attempts required */
-        if (count(SessionManager::get('game.history')) < 3) {
+        if (count($session['game']['history']) < 3) {
             $this->telegram->sendMessage('Please try to guess at least 3 words!');
 
-            SessionManager::set([
-                'message_id' => SessionManager::get('message_id'),
-                'feedback' => $this->telegram->getLastMessageId(),
-                'user' => SessionManager::get('user') ?? [],
-                'settings' => SessionManager::get('settings') ?? [],
-                'history' => SessionManager::get('history') ?? [],
-                'game' => SessionManager::get('game') ?? [],
-            ]);
-
+            $session['feedback'] = $this->telegram->getLastMessageId();
+            unset($session['state']);
+            SessionManager::set($session, SessionManager::get('state'));
             return;
         }
 
-        $answer = ContextoApi::giveUp(SessionManager::get('game.id'));
+        $answer = ContextoApi::giveUp($session['game']['id']);
         if ($answer) {
-            SessionManager::set([
-                'message_id' => SessionManager::get('message_id'),
-                'feedback' => $feedbackId,
-                'user' => SessionManager::get('user'),
-                'settings' => SessionManager::get('settings') ?? [],
-                'history' => [
-                    ...(SessionManager::get('history') ?? []), [
-                        'id' => SessionManager::get('game.id'),
-                        'status' => 'lost',
-                        'date' => date('Y-m-d H:i:s A')
-                    ]
-                ],
-                'game' => [
+            $session['feedback'] = $feedbackId;
+            $session['history'] = [
+                ...($session['history'] ?? []), [
                     'id' => SessionManager::get('game.id'),
-                    'guesses' => SessionManager::get('game.guesses'),
-                    'hints' => SessionManager::get('game.hints'),
-                    'distance' => $answer->distance,
-                    'last_word' => $answer->word,
-                    'progress' => (array)Misc::getRate($answer->distance),
-                    'history' => [
-                        ...(SessionManager::get('game.history') ?? []),
-                        [$answer->word, $answer->distance],
-                    ],
+                    'word' => $answer->word,
+                    'status' => 'lost',
+                    'date' => date('Y-m-d H:i:s A')
+                ]
+            ];
+            $session['game'] = [
+                'id' => SessionManager::get('game.id'),
+                'guesses' => SessionManager::get('game.guesses'),
+                'hints' => SessionManager::get('game.hints'),
+                'distance' => $answer->distance,
+                'last_word' => $answer->word,
+                'progress' => (array)Misc::getRate($answer->distance),
+                'history' => [
+                    ...(SessionManager::get('game.history') ?? []),
+                    [$answer->word, $answer->distance],
                 ],
-            ], 'completed');
+            ];
+
+            unset($session['state']);
+            SessionManager::set($session, 'completed');
 
             $this->telegram->withOptions([
                 'reply_markup' => [
                     'inline_keyboard' => (new InlineKeyboard)
                         ->addButton('👎👎 You lost 👎👎', 'lost', InlineKeyboard::CALLBACK_DATA)
                         ->toArray(),
-                ]
-            ]);
-
-            $this->telegram->editMessage(SessionManager::get('message_id'), Misc::getTemplate(true));
+                ]])->editMessage($session['game_session'], Misc::getTemplate($session['game'], true));
         }
     }
 
@@ -259,22 +206,19 @@ class Game extends BaseEvent
     #[Command('reset')]
     public function reset(): void
     {
-        /** delete last feedback message */
-        $feedbackId = null;
-        if (SessionManager::get('feedback')) {
-            $this->telegram->deleteMessage(SessionManager::get('feedback'));
-        }
-
+        $session = SessionManager::get();
+        $feedbackId = $session['feedback'] ?? null;
         $messageId = $this->event['message']['message_id'];
 
+        if ($feedbackId) $this->telegram->deleteMessage($feedbackId);
         $this->telegram->deleteMessage($messageId);
-        $this->telegram->deleteMessage(SessionManager::get('message_id'));
+        $this->telegram->deleteMessage($session['game_session']);
 
-        SessionManager::set([
-            'user' => SessionManager::get('user'),
-            'settings' => SessionManager::get('settings'),
-            'history' => SessionManager::get('history'),
-        ]);
+        $session['game'] = [];
+        $session['feedback'] = null;
+        unset($session['state']);
+
+        SessionManager::set($session);
     }
 
     /**
@@ -286,7 +230,8 @@ class Game extends BaseEvent
     #[Text(true)]
     public function word(): void
     {
-        $feedbackId = SessionManager::get('feedback') ?? null;
+        $session = SessionManager::get();
+        $feedbackId = $session['feedback'] ?? null;
         if ($feedbackId) {
             $this->telegram->deleteMessage($feedbackId);
             $feedbackId = null;
@@ -297,69 +242,55 @@ class Game extends BaseEvent
         $this->telegram->deleteMessage($messageId);
 
         /** check if game is initiated */
-        $inGame = in_array(SessionManager::get('state'), ['started', 'playing']);
-        $initiated = !empty(SessionManager::get('game'));
+        $inGame = in_array($session['state'], ['started', 'playing']);
+        $initiated = !empty($session['game']);
         if (!$initiated || !$inGame) {
             $this->telegram->sendMessage('Please start a game first!');
-
-            SessionManager::set([
-                'feedback' => $this->telegram->getLastMessageId(),
-                'user' => SessionManager::get('user') ?? [],
-                'settings' => SessionManager::get('settings') ?? [],
-                'history' => SessionManager::get('history') ?? [],
-                'game' => SessionManager::get('game') ?? [],
-            ]);
-
+            $session['feedback'] = $this->telegram->getLastMessageId();
+            unset($session['state']);
+            SessionManager::set($session);
             return;
         }
 
         /** multiple words */
         if (preg_match('/\s+/', $word)) {
             $this->telegram->sendMessage('Please try a single word at a time!');
-
-            SessionManager::set([
-                'message_id' => SessionManager::get('message_id'),
-                'feedback' => $this->telegram->getLastMessageId(),
-                'user' => SessionManager::get('user') ?? [],
-                'settings' => SessionManager::get('settings') ?? [],
-                'history' => SessionManager::get('history') ?? [],
-                'game' => SessionManager::get('game') ?? [],
-            ]);
-
+            $session['feedback'] = $this->telegram->getLastMessageId();
+            unset($session['state']);
+            SessionManager::set($session, $session['state']);
             return;
         }
 
-        $result = ContextoApi::guess(SessionManager::get('game.id'), $word);
+        $result = ContextoApi::guess($session['game']['id'], $word);
         if ($result) {
-            $history = SessionManager::get('history');
+            $history = $session['history'];
             $hasWon = $result->distance == 0;
             if ($hasWon) {
                 $history[] = [
-                    'id' => SessionManager::get('game.id'),
+                    'id' => $session['game']['id'],
+                    'word' => $result->word,
                     'status' => 'won',
                     'date' => date('Y-m-d H:i:s A')
                 ];
             }
 
-            SessionManager::set([
-                'message_id' => SessionManager::get('message_id'),
-                'feedback' => $feedbackId,
-                'user' => SessionManager::get('user'),
-                'settings' => SessionManager::get('settings'),
-                'history' => $history,
-                'game' => [
-                    'id' => SessionManager::get('game.id'),
-                    'guesses' => SessionManager::get('game.guesses') + 1,
-                    'hints' => SessionManager::get('game.hints'),
-                    'distance' => $result->distance,
-                    'last_word' => $result->word,
-                    'progress' => (array)Misc::getRate($result->distance),
-                    'history' => [
-                        ...(SessionManager::get('game.history') ?? []),
-                        [$result->word, $result->distance],
-                    ],
+            $session['feedback'] = $feedbackId;
+            $session['history'] = $history;
+            $session['game'] = [
+                'id' => $session['game']['id'],
+                'guesses' => $session['game']['guesses'] + 1,
+                'hints' => $session['game']['hints'],
+                'distance' => $result->distance,
+                'last_word' => $result->word,
+                'progress' => (array)Misc::getRate($result->distance),
+                'history' => [
+                    ...($session['game']['history'] ?? []),
+                    [$result->word, $result->distance],
                 ],
-            ], ($hasWon ? 'completed' : 'playing'));
+            ];
+
+            unset($session['state']);
+            SessionManager::set($session, ($hasWon ? 'completed' : 'playing'));
 
             if ($hasWon) {
                 $this->telegram->withOptions([
@@ -371,7 +302,7 @@ class Game extends BaseEvent
                 ]);
             }
 
-            $this->telegram->editMessage(SessionManager::get('message_id'), Misc::getTemplate($hasWon));
+            $this->telegram->editMessage($session['game_session'], Misc::getTemplate($session['game'], $hasWon));
         }
 
     }
