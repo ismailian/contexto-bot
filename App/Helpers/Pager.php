@@ -6,7 +6,7 @@ class Pager
 {
 
     /** @var int $max */
-    protected static int $max = 9;
+    protected static int $max = 10;
 
     /** @var int $limit */
     protected static int $limit;
@@ -56,10 +56,11 @@ class Pager
         $nextPage = max($pages) + 1;
         $backPage = min($pages) - 1;
 
+        usort($pages, fn($a, $b) => $b - $a);
         return (object)[
             'pages' => $pages,
-            'next' => $nextPage >= self::$limit ? null : $nextPage,
-            'back' => $backPage > 0 ? $backPage : null,
+            'next' => $nextPage >= self::$limit ? 0 : $nextPage,
+            'back' => $backPage,
         ];
     }
 
@@ -82,11 +83,11 @@ class Pager
         $nextPage = max($pages) + 1;
         $backPage = min($pages) - 1;
 
-        sort($pages);
+        usort($pages, fn($a, $b) => $b - $a);
         return (object)[
             'pages' => $pages,
-            'next' => $nextPage >= self::$limit ? null : $nextPage,
-            'back' => $backPage > 0 ? $backPage : null,
+            'next' => $nextPage >= self::$limit ? 0 : $nextPage,
+            'back' => $backPage,
         ];
     }
 
