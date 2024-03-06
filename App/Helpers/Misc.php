@@ -4,7 +4,6 @@ namespace TeleBot\App\Helpers;
 
 use DateTime;
 use Exception;
-use TeleBot\System\SessionManager;
 
 class Misc
 {
@@ -39,78 +38,11 @@ class Misc
     }
 
     /**
-     * get next tip distance
+     * get distance rate
      *
-     * @param array $guessHistory
-     * @return int
+     * @param $distance
+     * @return object
      */
-    public static function getNextTipDistance(array $guessHistory = []): int
-    {
-        $tipDistance = self::GREEN_THRESHOLD - 1;
-        $lowestDistance = $tipDistance;
-
-        if (!empty($guessHistory)) {
-            $distances = array_map(fn($d) => $d[1], $guessHistory);
-            $lowestDistance = min([...$distances, $lowestDistance]);
-            if ($lowestDistance > 1) $tipDistance = $lowestDistance - 1;
-            else {
-                $tipDistance = 2;
-                while (in_array($tipDistance, $distances)) {
-                    $tipDistance += 1;
-                }
-            }
-        }
-
-        return $tipDistance;
-    }
-
-    /**
-     * get half tip distance
-     *
-     * @param array $guessHistory
-     * @return int
-     */
-    public static function getHalfTipDistance(array $guessHistory = []): int
-    {
-        $tipDistance = self::GREEN_THRESHOLD - 1;
-        $lowestDistance = $tipDistance * 2;
-
-        if (!empty($guessHistory)) {
-            $distances = array_map(fn($d) => $d[1], $guessHistory);
-            $lowestDistance = min([...$distances, $lowestDistance]);
-            if ($lowestDistance > 1) $tipDistance = floor($lowestDistance / 2);
-            else {
-                $tipDistance = 2;
-                while (in_array($tipDistance, $distances)) {
-                    $tipDistance += 1;
-                }
-            }
-        }
-
-        return $tipDistance;
-    }
-
-    /**
-     * get random tip distance
-     *
-     * @param array $guessHistory
-     * @return int
-     */
-    public static function getRandomTipDistance(array $guessHistory = []): int
-    {
-        $maxDistance = self::GREEN_THRESHOLD - 1;
-        $tipDistance = floor(rand(1, $maxDistance - 1)) + 1;
-
-        if (!empty($guessHistory)) {
-            $distances = array_map(fn($d) => $d[1], $guessHistory);
-            while (in_array($distances, $distances)) {
-                $tipDistance = floor(rand(1, $maxDistance - 1)) + 1;
-            }
-        }
-
-        return $tipDistance;
-    }
-
     public static function getRate($distance): object
     {
         $total = 40000;
@@ -124,9 +56,7 @@ class Misc
 
         $x = ($distance / $total) * ($endX - $startX);
         $result = (int)((($calc($x) - $endY) / ($startY - $endY)) * 10);
-        if ($result < 1) {
-            $result = 1;
-        }
+        if ($result < 1) $result = 1;
 
         return (object)[
             'value' => $result,
@@ -135,14 +65,14 @@ class Misc
     }
 
     /**
-    * get greeting template
-    *
-    * @param string $firstName user first name
-    * @return string returns a compiled greeting template
-    */
+     * get greeting template
+     *
+     * @param string $firstName user first name
+     * @return string returns a compiled greeting template
+     */
     public static function getGreeting(string $firstName): string
     {
-        return "Hello, $firstName! and welcome to \n**Guess The Word**\n\nStart playing the game by clicking the menu button and clicking /play option.\n\nIf you need a hint, click /hint.\n\nIf you can't figure out the word,\nyou can click /giveup option and get the correct answer.";
+        return "Hello, $firstName! and welcome to \nGuess The Word\n\nStart playing the game by clicking the menu button and clicking /play option.\n\nIf you need a hint, click /hint.\n\nIf you can't figure out the word,\nyou can click /giveup option and get the correct answer.";
     }
 
     /**
@@ -202,6 +132,95 @@ class Misc
         }
 
         return str_replace('{progress}', join('', $bar), $template);
+    }
+
+    /**
+     * get tip distance based on difficulty level
+     *
+     * @param string $difficulty
+     * @param array $history
+     * @return int
+     */
+    public static function getTipDistance(string $difficulty, array $history = []): int
+    {
+        return match ($difficulty) {
+            'easy' => self::getHalfTipDistance($history),
+            'medium' => self::getNextTipDistance($history),
+            'hard' => self::getRandomTipDistance($history),
+        };
+    }
+
+    /**
+     * get half tip distance (Easy)
+     *
+     * @param array $guessHistory
+     * @return int
+     */
+    protected static function getHalfTipDistance(array $guessHistory = []): int
+    {
+        $tipDistance = self::GREEN_THRESHOLD - 1;
+        $lowestDistance = $tipDistance * 2;
+
+        if (!empty($guessHistory)) {
+            $distances = array_map(fn($d) => $d[1], $guessHistory);
+            $lowestDistance = min([...$distances, $lowestDistance]);
+            if ($lowestDistance > 1) $tipDistance = floor($lowestDistance / 2);
+            else {
+                $tipDistance = 2;
+                while (in_array($tipDistance, $distances)) {
+                    $tipDistance += 1;
+                }
+            }
+        }
+
+        return $tipDistance;
+    }
+
+    /**
+     * get random tip distance (Hard)
+     *
+     * @param array $guessHistory
+     * @return int
+     */
+    protected static function getRandomTipDistance(array $guessHistory = []): int
+    {
+        $maxDistance = self::GREEN_THRESHOLD - 1;
+        $tipDistance = floor(rand(1, $maxDistance - 1)) + 1;
+
+        if (!empty($guessHistory)) {
+            $distances = array_map(fn($d) => $d[1], $guessHistory);
+            while (in_array($distances, $distances)) {
+                $tipDistance = floor(rand(1, $maxDistance - 1)) + 1;
+            }
+        }
+
+        return $tipDistance;
+    }
+
+    /**
+     * get next tip distance (Medium)
+     *
+     * @param array $guessHistory
+     * @return int
+     */
+    protected static function getNextTipDistance(array $guessHistory = []): int
+    {
+        $tipDistance = self::GREEN_THRESHOLD - 1;
+        $lowestDistance = $tipDistance;
+
+        if (!empty($guessHistory)) {
+            $distances = array_map(fn($d) => $d[1], $guessHistory);
+            $lowestDistance = min([...$distances, $lowestDistance]);
+            if ($lowestDistance > 1) $tipDistance = $lowestDistance - 1;
+            else {
+                $tipDistance = 2;
+                while (in_array($tipDistance, $distances)) {
+                    $tipDistance += 1;
+                }
+            }
+        }
+
+        return $tipDistance;
     }
 
 }
