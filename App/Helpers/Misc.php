@@ -148,10 +148,11 @@ class Misc
     /**
      * get game template
      *
+     * @param array $session
      * @param bool $isCorrectWord
      * @return string
      */
-    public static function getTemplate(bool $isCorrectWord = false): string
+    public static function getTemplate(array $session, bool $isCorrectWord = false): string
     {
         $template = "Today's game: #{gameId}\n\n";
         $template .= "Guesses: {guessCount}\n";
@@ -160,16 +161,17 @@ class Misc
         $template .= ($isCorrectWord ? 'Correct word' : 'Last word') . ": {lastWord}\n";
         $template .= "{progress}";
 
-        return self::build($template);
+        return self::build($template, $session);
     }
 
     /**
      * build progress template
      *
      * @param string $template
+     * @param array $session
      * @return string
      */
-    protected static function build(string $template): string
+    protected static function build(string $template, array $session): string
     {
         $bar = [];
         $types = [
@@ -177,15 +179,15 @@ class Misc
             'M' => '🟡', 'L' => '🟢',
         ];
 
-        $template = str_replace('{gameId}', SessionManager::get('game.id'), $template);
-        $template = str_replace('{guessCount}', SessionManager::get('game.guesses'), $template);
-        $template = str_replace('{hintCount}', SessionManager::get('game.hints'), $template);
-        $template = str_replace('{distance}', SessionManager::get('game.distance'), $template);
-        $template = str_replace('{lastWord}', SessionManager::get('game.last_word'), $template);
+        $template = str_replace('{gameId}', $session['id'], $template);
+        $template = str_replace('{guessCount}', $session['guesses'], $template);
+        $template = str_replace('{hintCount}', $session['hints'], $template);
+        $template = str_replace('{distance}', $session['distance'], $template);
+        $template = str_replace('{lastWord}', $session['last_word'], $template);
 
         /** progress */
-        $progressType = SessionManager::get('game.progress.type');
-        $progressValue = SessionManager::get('game.progress.value');
+        $progressType = $session['progress']['type'];
+        $progressValue = $session['progress']['value'];
         if ($progressValue > 0) {
             for ($i = 0; $i < $progressValue; $i++) {
                 $bar[] = $types[$progressType];
