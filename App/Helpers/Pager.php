@@ -47,13 +47,19 @@ class Pager
     {
         $pages = [];
         while (count($pages) < self::$max) {
-            $pages[] = $start--;
+            $val = $start--;
+            if ($val == 0) break;
+
+            $pages[] = $val;
         }
+
+        $nextPage = max($pages) + 1;
+        $backPage = min($pages) - 1;
 
         return (object)[
             'pages' => $pages,
-            'next' => $pages[count($pages) - 1],
-            'back' => $pages[0] - 1
+            'next' => $nextPage >= self::$limit ? null : $nextPage,
+            'back' => $backPage > 0 ? $backPage : null,
         ];
     }
 
@@ -67,14 +73,20 @@ class Pager
     {
         $pages = [];
         while (count($pages) < self::$max) {
-            $pages[] = $start++;
+            $val = $start++;
+            if ($val >= self::$limit) break;
+
+            $pages[] = $val;
         }
+
+        $nextPage = max($pages) + 1;
+        $backPage = min($pages) - 1;
 
         sort($pages);
         return (object)[
             'pages' => $pages,
-            'next' => $pages[0] - 1,
-            'back' => $pages[count($pages) - 1],
+            'next' => $nextPage >= self::$limit ? null : $nextPage,
+            'back' => $backPage > 0 ? $backPage : null,
         ];
     }
 
