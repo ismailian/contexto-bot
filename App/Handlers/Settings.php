@@ -3,6 +3,7 @@
 namespace TeleBot\App\Handlers;
 
 use Exception;
+use TeleBot\App\Helpers\Misc;
 use TeleBot\System\BaseEvent;
 use TeleBot\System\Events\Command;
 use TeleBot\System\SessionManager;
@@ -12,6 +13,37 @@ use TeleBot\System\Types\IncomingCallbackQuery;
 
 class Settings extends BaseEvent
 {
+
+    /**
+     * handle start command
+     *
+     * @return void
+     * @throws Exception
+     */
+    #[Command('start')]
+    public function welcome(): void
+    {
+        $messageId = $this->event['message']['message_id'];
+        $feedbackId = SessionManager::get('feedback') ?? null;
+
+        $this->telegram->deleteMessage($messageId);
+        if ($feedbackId) {
+            $this->telegram->deleteMessage($feedbackId);
+        }
+
+        $session = SessionManager::get();
+        $session['settings'] = $session['settings'] ?? [
+            'id' => null,
+            'language' => 'en',
+            'difficulty' => 'easy'
+        ];
+
+        $greeting = Misc::getGreeting($this->event['message']['from']['first_name']);
+        $this->telegram->sendMessage($greeting);
+
+        unset($session['state']);
+        SessionManager::set($session);
+    }
 
     /**
      * handle settings command
@@ -24,11 +56,11 @@ class Settings extends BaseEvent
     {
         $messageId = $this->event['message']['message_id'];
         $feedbackId = SessionManager::get('feedback') ?? null;
+        $settingsId = SessionManager::get('settings.id') ?? null;
 
         $this->telegram->deleteMessage($messageId);
-        if ($feedbackId) {
-            $this->telegram->deleteMessage($feedbackId);
-        }
+        if ($settingsId) $this->telegram->deleteMessage($settingsId);
+        if ($feedbackId) $this->telegram->deleteMessage($feedbackId);
 
         $this->telegram->withOptions([
             'reply_markup' => [
@@ -57,8 +89,13 @@ class Settings extends BaseEvent
     public function language(IncomingCallbackQuery $query): void
     {
         $settingsId = SessionManager::get('settings.id');
+        $feedbackId = SessionManager::get('feedback');
+        if ($feedbackId) {
+            $this->telegram->deleteMessage($feedbackId);
+        }
+
         $lang = SessionManager::get('settings.language');
-        $isLang = fn($l) => $l == $lang ? ' ✅' : '';
+        $isLang = fn($l) => $l == $lang ? '✅ ' : '';
 
         if (empty($settingsId)) return;
 
@@ -66,9 +103,9 @@ class Settings extends BaseEvent
             'reply_markup' => [
                 'inline_keyboard' => (new InlineKeyboard)
                     ->setRowMax(2)
-                    ->addButton('English' . $isLang('en'), ['settings:lang' => 'en'], InlineKeyboard::CALLBACK_DATA)
-                    ->addButton('Spanish' . $isLang('es'), ['settings:lang' => 'es'], InlineKeyboard::CALLBACK_DATA)
-                    ->addButton('Portuguese' . $isLang('pt'), ['settings:lang' => 'pt'], InlineKeyboard::CALLBACK_DATA)
+                    ->addButton(($isLang('en') . 'English'), ['settings:lang' => 'en'], InlineKeyboard::CALLBACK_DATA)
+                    ->addButton(($isLang('es') . 'Spanish'), ['settings:lang' => 'es'], InlineKeyboard::CALLBACK_DATA)
+                    ->addButton(($isLang('pt') . 'Portuguese'), ['settings:lang' => 'pt'], InlineKeyboard::CALLBACK_DATA)
                     ->toArray(),
             ]
         ])->editMessage($settingsId, 'Choose your language:');
@@ -112,21 +149,22 @@ class Settings extends BaseEvent
     #[CallbackQuery('settings:lang')]
     public function languageChanged(IncomingCallbackQuery $query): void
     {
-        $settingsId = SessionManager::get('settings.id');
+        $session = SessionManager::get();
+        $settingsId = $session['settings']['id'];
         $language = $query('settings:lang');
 
         if (empty($settingsId)) return;
         if (!in_array($language, ['en', 'es', 'pt'])) return;
 
-        $session = SessionManager::get();
+        $this->telegram->deleteMessage($settingsId);
+        $this->telegram->sendMessage('Your preferred language has been saved!');
+
         $session['settings']['id'] = null;
         $session['settings']['language'] = $language;
-        $session['feedback'] = $settingsId;
+        $session['feedback'] = $this->telegram->getLastMessageId();
 
         unset($session['state']);
         SessionManager::set($session, SessionManager::get('state'));
-
-        $this->telegram->editMessage($settingsId, 'Your preferred language has been saved!');
     }
 
     /**
@@ -139,21 +177,22 @@ class Settings extends BaseEvent
     #[CallbackQuery('settings:diff')]
     public function difficultyChanged(IncomingCallbackQuery $query): void
     {
-        $settingsId = SessionManager::get('settings.id');
+        $session = SessionManager::get();
+        $settingsId = $session['settings']['id'];
         $language = $query('settings:diff');
 
         if (empty($settingsId)) return;
         if (!in_array($language, ['easy', 'medium', 'hard'])) return;
 
-        $session = SessionManager::get();
+        $this->telegram->deleteMessage($settingsId);
+        $this->telegram->sendMessage('Your difficulty level has been saved!');
+
         $session['settings']['id'] = null;
         $session['settings']['difficulty'] = $language;
-        $session['feedback'] = $settingsId;
+        $session['feedback'] = $this->telegram->getLastMessageId();
 
         unset($session['state']);
         SessionManager::set($session, SessionManager::get('state'));
-
-        $this->telegram->editMessage($settingsId, 'Your preferred difficulty has been saved!');
     }
 
 }

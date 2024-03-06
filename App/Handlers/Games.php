@@ -5,6 +5,7 @@ namespace TeleBot\App\Handlers;
 use Exception;
 use TeleBot\App\Helpers\Misc;
 use TeleBot\System\BaseEvent;
+use TeleBot\App\Helpers\Pager;
 use TeleBot\System\Events\Command;
 use TeleBot\System\SessionManager;
 use TeleBot\System\Events\CallbackQuery;
@@ -23,16 +24,20 @@ class Games extends BaseEvent
     #[Command('list')]
     public function list(): void
     {
-        $currentGameId = $lastGameId = Misc::getTodaysGameId();
+        $session = SessionManager::get();
+        $currentGameId = $lastGameId = Misc::getTodaysGameId($session['settings']['language']);
         $messageId = $this->event['message']['message_id'];
+        $feedbackId = $session['feedback'] ?? null;
+        $settingsId = $session['settings']['id'] ?? null;
         $inlineKeyboard = new InlineKeyboard();
 
         $this->telegram->deleteMessage($messageId);
+        if ($feedbackId) $this->telegram->deleteMessage($feedbackId);
+        if ($settingsId) $this->telegram->deleteMessage($settingsId);
 
-        for ($i = 0; $i < 9; $i++) {
-            $lastGameId -= 1;
-            if ($lastGameId = 0) break;
-            $inlineKeyboard->addButton("#$lastGameId", ['game:id' => $lastGameId], InlineKeyboard::CALLBACK_DATA);
+        $pager = Pager::setLimit($currentGameId)->back(($currentGameId - 1));
+        foreach ($pager->pages as $gameId) {
+            $inlineKeyboard->addButton("#$gameId", ['game:id' => $gameId], InlineKeyboard::CALLBACK_DATA);
         }
 
         $this->telegram->withOptions([
@@ -40,16 +45,14 @@ class Games extends BaseEvent
                 'inline_keyboard' => [
                     ...$inlineKeyboard->toArray(),
                     ...(new InlineKeyboard)
-                        ->addButton('<<', ['list:next' => ''], InlineKeyboard::CALLBACK_DATA)
-                        ->addButton('>>', ['list:back' => $lastGameId], InlineKeyboard::CALLBACK_DATA)
+                        ->addButton('<<', ['list:back' => $pager->back], InlineKeyboard::CALLBACK_DATA)
+                        ->addButton('>>', ['list:next' => $pager->next], InlineKeyboard::CALLBACK_DATA)
                         ->toArray()
                 ]
             ]
         ])->sendMessage('Choose a game to play:');
 
-        $session = SessionManager::get();
         $session['feedback'] = $this->telegram->getLastMessageId();
-
         unset($session['state']);
         SessionManager::set($session, SessionManager::get('state'));
     }
@@ -64,14 +67,19 @@ class Games extends BaseEvent
     #[CallbackQuery('list:next')]
     public function next(IncomingCallbackQuery $query): void
     {
-        $currentGameId = Misc::getTodaysGameId();
+        $session = SessionManager::get();
+        $currentGameId = Misc::getTodaysGameId($session['settings']['language']);
         $lastGameId = $query('list:next');
+        $feedbackId = $session['feedback'] ?? null;
+        $settingsId = $session['settings']['id'] ?? null;
         $inlineKeyboard = new InlineKeyboard();
 
-        for ($i = 0; $i < 9; $i++) {
-            $lastGameId += 1;
-            if ($lastGameId >= $currentGameId) break;
-            $inlineKeyboard->addButton("#$lastGameId", ['game:id' => $lastGameId], InlineKeyboard::CALLBACK_DATA);
+        if (empty($feedbackId) || empty($lastGameId)) return;
+        if ($settingsId) $this->telegram->deleteMessage($settingsId);
+
+        $pager = Pager::setLimit($currentGameId)->next($lastGameId);
+        foreach ($pager->pages as $gameId) {
+            $inlineKeyboard->addButton("#$gameId", ['game:id' => $gameId], InlineKeyboard::CALLBACK_DATA);
         }
 
         $this->telegram->withOptions([
@@ -79,15 +87,12 @@ class Games extends BaseEvent
                 'inline_keyboard' => [
                     ...$inlineKeyboard->toArray(),
                     ...(new InlineKeyboard)
-                        ->addButton('<<', ['list:next' => $lastGameId], InlineKeyboard::CALLBACK_DATA)
-                        ->addButton('>>', ['list:back' => $lastGameId - 9], InlineKeyboard::CALLBACK_DATA)
+                        ->addButton('<<', ['list:back' => $pager->back], InlineKeyboard::CALLBACK_DATA)
+                        ->addButton('>>', ['list:next' => $pager->next], InlineKeyboard::CALLBACK_DATA)
                         ->toArray()
                 ]
             ]
-        ])->sendMessage('Choose a game to play:');
-
-        $session = SessionManager::get();
-        $session['feedback'] = $this->telegram->getLastMessageId();
+        ])->editMessage($feedbackId, 'Choose a game to play:');
 
         unset($session['state']);
         SessionManager::set($session, SessionManager::get('state'));
@@ -103,13 +108,19 @@ class Games extends BaseEvent
     #[CallbackQuery('list:back')]
     public function back(IncomingCallbackQuery $query): void
     {
+        $session = SessionManager::get();
+        $currentGameId = Misc::getTodaysGameId($session['settings']['language']);
         $lastGameId = $query('list:back');
+        $feedbackId = $session['feedback'] ?? null;
+        $settingsId = $session['settings']['id'] ?? null;
         $inlineKeyboard = new InlineKeyboard();
 
-        for ($i = 0; $i < 9; $i++) {
-            $lastGameId -= 1;
-            if ($lastGameId = 0) break;
-            $inlineKeyboard->addButton("#$lastGameId", ['game:id' => $lastGameId], InlineKeyboard::CALLBACK_DATA);
+        if (empty($feedbackId) || empty($lastGameId)) return;
+        if ($settingsId) $this->telegram->deleteMessage($settingsId);
+
+        $pager = Pager::setLimit($currentGameId)->back($lastGameId);
+        foreach ($pager->pages as $gameId) {
+            $inlineKeyboard->addButton("#$gameId", ['game:id' => $gameId], InlineKeyboard::CALLBACK_DATA);
         }
 
         $this->telegram->withOptions([
@@ -117,15 +128,12 @@ class Games extends BaseEvent
                 'inline_keyboard' => [
                     ...$inlineKeyboard->toArray(),
                     ...(new InlineKeyboard)
-                        ->addButton('<<', ['list:next' => $lastGameId + 9], InlineKeyboard::CALLBACK_DATA)
-                        ->addButton('>>', ['list:back' => $lastGameId], InlineKeyboard::CALLBACK_DATA)
+                        ->addButton('<<', ['list:back' => $pager->back], InlineKeyboard::CALLBACK_DATA)
+                        ->addButton('>>', ['list:next' => $pager->next], InlineKeyboard::CALLBACK_DATA)
                         ->toArray()
                 ]
             ]
-        ])->sendMessage('Choose a game to play:');
-
-        $session = SessionManager::get();
-        $session['feedback'] = $this->telegram->getLastMessageId();
+        ])->editMessage($feedbackId, 'Choose a game to play:');
 
         unset($session['state']);
         SessionManager::set($session, SessionManager::get('state'));
@@ -138,17 +146,16 @@ class Games extends BaseEvent
      * @return void
      * @throws Exception
      */
-    #[CallbackQuery('games:id')]
+    #[CallbackQuery('game:id')]
     public function setGame(IncomingCallbackQuery $query): void
     {
-        $gameId = $query('games:id');
-        $feedbackId = SessionManager::get('feedback') ?? null;
-        if ($feedbackId) {
-            $this->telegram->deleteMessage($feedbackId);
-        }
-
-        /** start a game */
+        $gameId = $query('game:id');
         $session = SessionManager::get();
+
+        $feedbackId = $session['feedback'] ?? null;
+        if ($feedbackId) $this->telegram->deleteMessage($feedbackId);
+
+        $inGame = $session['state'] == 'playing' && !empty($session['game']) && !empty($session['game_session']);
         $session['game'] = [
             'id' => $gameId,
             'guesses' => 0,
@@ -162,11 +169,15 @@ class Games extends BaseEvent
             ],
         ];
 
-        $this->telegram->sendMessage(Misc::getTemplate());
-        $session['message_id'] = $this->telegram->getLastMessageId();
+        if ($inGame) {
+            $this->telegram->editMessage($session['game_session'], Misc::getTemplate($session['game']));
+        } else {
+            $this->telegram->sendMessage(Misc::getTemplate($session['game']));
+            $session['game_session'] = $this->telegram->getLastMessageId();
+        }
 
         unset($session['state']);
-        SessionManager::set($session, SessionManager::get('state'));
+        SessionManager::set($session);
     }
 
 }
