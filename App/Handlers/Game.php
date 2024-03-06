@@ -23,9 +23,9 @@ class Game extends BaseEvent
     #[Command('play')]
     public function play(): void
     {
-        $gameId = Misc::getTodaysGameId();
-        $messageId = $this->event['message']['message_id'];
         $session = SessionManager::get();
+        $gameId = Misc::getTodaysGameId($session['settings']['language']);
+        $messageId = $this->event['message']['message_id'];
         $feedbackId = $session['feedback'] ?? null;
 
         $this->telegram->deleteMessage($messageId);
@@ -97,19 +97,19 @@ class Game extends BaseEvent
             return;
         }
 
-        $tipDistance = Misc::getNextTipDistance((SessionManager::get('game.history') ?? []));
-        $hint = ContextoApi::getHint(SessionManager::get('game.id'), $tipDistance);
+        $tipDistance = Misc::getTipDistance($session['settings']['difficulty'], ($session['game']['history'] ?? []));
+        $hint = ContextoApi::getHint($session['game']['id'], $tipDistance, $session['settings']['language']);
         if ($hint) {
             $session['feedback'] = $feedbackId;
             $session['game'] = [
-                'id' => SessionManager::get('game.id'),
-                'guesses' => SessionManager::get('game.guesses') + 1,
-                'hints' => SessionManager::get('game.hints') + 1,
+                'id' => $session['game']['id'],
+                'guesses' => $session['game']['guesses'] + 1,
+                'hints' => $session['game']['hints'] + 1,
                 'distance' => $hint->distance,
                 'last_word' => $hint->word,
                 'progress' => (array)Misc::getRate($hint->distance),
                 'history' => [
-                    ...(SessionManager::get('game.history') ?? []),
+                    ...($session['game']['history'] ?? []),
                     [$hint->word, $hint->distance],
                 ],
             ];
@@ -161,7 +161,7 @@ class Game extends BaseEvent
             return;
         }
 
-        $answer = ContextoApi::giveUp($session['game']['id']);
+        $answer = ContextoApi::giveUp($session['game']['id'], $session['settings']['language']);
         if ($answer) {
             $session['feedback'] = $feedbackId;
             $session['history'] = [
@@ -261,7 +261,7 @@ class Game extends BaseEvent
             return;
         }
 
-        $result = ContextoApi::guess($session['game']['id'], $word);
+        $result = ContextoApi::guess($session['game']['id'], $word, $session['settings']['language']);
         if ($result) {
             $history = $session['history'];
             $hasWon = $result->distance == 0;
@@ -306,4 +306,5 @@ class Game extends BaseEvent
         }
 
     }
+
 }

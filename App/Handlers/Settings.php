@@ -95,7 +95,7 @@ class Settings extends BaseEvent
         }
 
         $lang = SessionManager::get('settings.language');
-        $isLang = fn($l) => $l == $lang ? ' ✅' : '';
+        $isLang = fn($l) => $l == $lang ? '✅ ' : '';
 
         if (empty($settingsId)) return;
 
@@ -103,9 +103,9 @@ class Settings extends BaseEvent
             'reply_markup' => [
                 'inline_keyboard' => (new InlineKeyboard)
                     ->setRowMax(2)
-                    ->addButton('English' . $isLang('en'), ['settings:lang' => 'en'], InlineKeyboard::CALLBACK_DATA)
-                    ->addButton('Spanish' . $isLang('es'), ['settings:lang' => 'es'], InlineKeyboard::CALLBACK_DATA)
-                    ->addButton('Portuguese' . $isLang('pt'), ['settings:lang' => 'pt'], InlineKeyboard::CALLBACK_DATA)
+                    ->addButton(($isLang('en') . 'English'), ['settings:lang' => 'en'], InlineKeyboard::CALLBACK_DATA)
+                    ->addButton(($isLang('es') . 'Spanish'), ['settings:lang' => 'es'], InlineKeyboard::CALLBACK_DATA)
+                    ->addButton(($isLang('pt') . 'Portuguese'), ['settings:lang' => 'pt'], InlineKeyboard::CALLBACK_DATA)
                     ->toArray(),
             ]
         ])->editMessage($settingsId, 'Choose your language:');

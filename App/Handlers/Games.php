@@ -25,7 +25,7 @@ class Games extends BaseEvent
     public function list(): void
     {
         $session = SessionManager::get();
-        $currentGameId = $lastGameId = Misc::getTodaysGameId();
+        $currentGameId = $lastGameId = Misc::getTodaysGameId($session['settings']['language']);
         $messageId = $this->event['message']['message_id'];
         $feedbackId = $session['feedback'] ?? null;
         $settingsId = $session['settings']['id'] ?? null;
@@ -68,7 +68,7 @@ class Games extends BaseEvent
     public function next(IncomingCallbackQuery $query): void
     {
         $session = SessionManager::get();
-        $currentGameId = Misc::getTodaysGameId();
+        $currentGameId = Misc::getTodaysGameId($session['settings']['language']);
         $lastGameId = $query('list:next');
         $feedbackId = $session['feedback'] ?? null;
         $settingsId = $session['settings']['id'] ?? null;
@@ -109,7 +109,7 @@ class Games extends BaseEvent
     public function back(IncomingCallbackQuery $query): void
     {
         $session = SessionManager::get();
-        $currentGameId = Misc::getTodaysGameId();
+        $currentGameId = Misc::getTodaysGameId($session['settings']['language']);
         $lastGameId = $query('list:back');
         $feedbackId = $session['feedback'] ?? null;
         $settingsId = $session['settings']['id'] ?? null;
