@@ -27,8 +27,14 @@ class Game extends BaseEvent
         $gameId = Misc::getTodaysGameId($session['settings']['language']);
         $messageId = $this->event['message']['message_id'];
         $feedbackId = $session['feedback'] ?? null;
+        $settingsId = $session['settings']['id'] ?? null;
 
         $this->telegram->deleteMessage($messageId);
+        if ($settingsId) {
+            $this->telegram->deleteMessage($settingsId);
+            $session['settings']['id'] = null;
+        }
+
         if ($feedbackId) {
             $this->telegram->deleteMessage($feedbackId);
             $feedbackId = null;
@@ -76,7 +82,13 @@ class Game extends BaseEvent
     {
         $session = SessionManager::get();
         $feedbackId = $session['feedback'] ?? null;
+        $settingsId = $session['settings']['id'] ?? null;
+
         if ($feedbackId) $this->telegram->deleteMessage($feedbackId);
+        if ($settingsId) {
+            $this->telegram->deleteMessage($settingsId);
+            $session['settings']['id'] = null;
+        }
 
         $messageId = $this->event['message']['message_id'];
         $this->telegram->deleteMessage($messageId);
@@ -130,7 +142,13 @@ class Game extends BaseEvent
     {
         $session = SessionManager::get();
         $feedbackId = $session['feedback'] ?? null;
+        $settingsId = $session['settings']['id'] ?? null;
+
         if ($feedbackId) $this->telegram->deleteMessage($feedbackId);
+        if ($settingsId) {
+            $this->telegram->deleteMessage($settingsId);
+            $session['settings']['id'] = null;
+        }
 
         $messageId = $this->event['message']['message_id'];
         $this->telegram->deleteMessage($messageId);
@@ -206,14 +224,18 @@ class Game extends BaseEvent
     {
         $session = SessionManager::get();
         $feedbackId = $session['feedback'] ?? null;
+        $settingsId = $session['settings']['id'] ?? null;
         $messageId = $this->event['message']['message_id'];
 
+        if ($settingsId) $this->telegram->deleteMessage($settingsId);
         if ($feedbackId) $this->telegram->deleteMessage($feedbackId);
+
         $this->telegram->deleteMessage($messageId);
         $this->telegram->deleteMessage($session['game_session']);
 
         $session['game'] = [];
         $session['feedback'] = null;
+        $session['settings']['id'] = null;
         unset($session['state']);
 
         SessionManager::set($session);
@@ -230,6 +252,13 @@ class Game extends BaseEvent
     {
         $session = SessionManager::get();
         $feedbackId = $session['feedback'] ?? null;
+        $settingsId = $session['settings']['id'] ?? null;
+
+        if ($settingsId) {
+            $this->telegram->deleteMessage($settingsId);
+            $session['settings']['id'] = null;
+        }
+
         if ($feedbackId) {
             $this->telegram->deleteMessage($feedbackId);
             $feedbackId = null;
@@ -302,7 +331,6 @@ class Game extends BaseEvent
 
             $this->telegram->editMessage($session['game_session'], Misc::getTemplate($session['game'], $hasWon));
         }
-
     }
 
 }
