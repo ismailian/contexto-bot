@@ -39,10 +39,8 @@ class Game extends BaseEvent
         $matches = !empty(array_filter($history, fn($g) => $g['id'] == $gameId));
         if (!empty($history) && !empty($matches)) {
             $this->telegram->sendMessage("You already played this game today: #$gameId");
-
             $session['feedback'] = $this->telegram->getLastMessageId();
             SessionManager::set($session, SessionManager::get('state'));
-
             return;
         }
 
@@ -64,7 +62,7 @@ class Game extends BaseEvent
         $session['game_session'] = $this->telegram->getLastMessageId();
 
         unset($session['state']);
-        SessionManager::set($session, SessionManager::get('state'));
+        SessionManager::set($session);
     }
 
     /**
