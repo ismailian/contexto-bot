@@ -72,7 +72,7 @@ class Misc
      */
     public static function getGreeting(string $firstName): string
     {
-        return "Hello, $firstName! and welcome to \nGuess The Word\n\nStart playing the game by clicking the menu button and clicking /play option.\n\nIf you need a hint, click /hint.\n\nIf you can't figure out the word,\nyou can click /giveup option and get the correct answer.";
+        return "Hello, $firstName!\nwelcome to Guess The Word\n\nStart playing the game by clicking the menu button and clicking /play option.\n\nIf you need a hint, click /hint.\n\nIf you can't figure out the word,\nyou can click /giveup option and get the correct answer.\n\nTo change your language/difficulty, click /settings";
     }
 
     /**
