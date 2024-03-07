@@ -7,9 +7,9 @@ use TeleBot\App\Helpers\Misc;
 use TeleBot\System\BaseEvent;
 use TeleBot\System\Events\Text;
 use TeleBot\System\Events\Command;
-use TeleBot\System\Types\InlineKeyboard;
 use TeleBot\System\SessionManager;
 use TeleBot\App\Services\ContextoApi;
+use TeleBot\System\Types\InlineKeyboard;
 
 class Game extends BaseEvent
 {

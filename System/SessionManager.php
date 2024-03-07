@@ -58,14 +58,22 @@ class SessionManager
             } catch (\Exception) {}
         }
 
-        $sessionKey = 'session/' . self::$sessionId . '.json';
         $session = (new self);
+        $sessionKey = 'session/' . self::$sessionId . '.json';
+        $session::$cached = [
+            'state' => 'started',
+            'settings' => [
+                'id' => null,
+                'language' => 'en',
+                'difficulty' => 'easy'
+            ]
+        ];
+
         if (file_exists($sessionKey)) {
             $session::$cached = json_decode(file_get_contents($sessionKey), true);
             return $session;
         }
 
-        $session::$cached = ['state' => 'started'];
         file_put_contents($sessionKey, json_encode($session::$cached, JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT));
         return $session;
     }
