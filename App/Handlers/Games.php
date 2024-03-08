@@ -155,7 +155,8 @@ class Games extends BaseEvent
         $feedbackId = $session['feedback'] ?? null;
         if ($feedbackId) $this->telegram->deleteMessage($feedbackId);
 
-        $inGame = $session['state'] == 'playing' && !empty($session['game']) && !empty($session['game_session']);
+	$inGame = in_array($session['state'], ['started', 'playing']);
+        $inGame = $inGame && !empty($session['game']) && !empty($session['game_session']);
         $session['game'] = [
             'id' => $gameId,
             'guesses' => 0,
@@ -172,7 +173,7 @@ class Games extends BaseEvent
         if ($inGame) {
             $this->telegram->editMessage($session['game_session'], Misc::getTemplate($session['game'], false, true));
         } else {
-            $this->telegram->sendMessage(Misc::getTemplate($session['game']));
+            $this->telegram->sendMessage(Misc::getTemplate($session['game'], false, true));
             $session['game_session'] = $this->telegram->getLastMessageId();
         }
 

@@ -50,6 +50,13 @@ class Game extends BaseEvent
             return;
         }
 
+	/** check if a game is already in progress (to avoid duplicate game sessions) */
+        $inGame = in_array($session['state'], ['started', 'playing']);
+        $inGame = $inGame && !empty($session['game']) && !empty($session['game_session']);
+
+	/** ignore if same game is already in progress */
+        if ($inGame && $session['game']['id'] == $gameId) return;
+
         $session['feedback'] = $feedbackId;
         $session['game'] = [
             'id' => $gameId,
@@ -64,8 +71,13 @@ class Game extends BaseEvent
             ],
         ];
 
-        $this->telegram->sendMessage(Misc::getTemplate($session['game']));
-        $session['game_session'] = $this->telegram->getLastMessageId();
+	if ($inGame) {
+		$this->telegram->editMessage($session['game_session'], Misc::getTemplate($session['game']));
+	}
+	else {
+		$this->telegram->sendMessage(Misc::getTemplate($session['game']));
+		$session['game_session'] = $this->telegram->getLastMessageId();
+	}
 
         unset($session['state']);
         SessionManager::set($session);
