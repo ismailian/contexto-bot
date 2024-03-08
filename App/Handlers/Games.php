@@ -170,7 +170,7 @@ class Games extends BaseEvent
         ];
 
         if ($inGame) {
-            $this->telegram->editMessage($session['game_session'], Misc::getTemplate($session['game']));
+            $this->telegram->editMessage($session['game_session'], Misc::getTemplate($session['game'], false, true));
         } else {
             $this->telegram->sendMessage(Misc::getTemplate($session['game']));
             $session['game_session'] = $this->telegram->getLastMessageId();
