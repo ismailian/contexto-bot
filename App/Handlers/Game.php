@@ -284,13 +284,13 @@ class Game extends BaseEvent
             $this->telegram->sendMessage('Please try a single word at a time!');
             $session['feedback'] = $this->telegram->getLastMessageId();
             unset($session['state']);
-            SessionManager::set($session, $session['state']);
+            SessionManager::set($session, 'playing');
             return;
         }
 
         $result = ContextoApi::guess($session['game']['id'], $word, $session['settings']['language']);
         if ($result) {
-            $history = $session['history'];
+            $history = $session['history'] ?? [];
             $hasWon = $result->distance == 0;
             if ($hasWon) {
                 $history[] = [
