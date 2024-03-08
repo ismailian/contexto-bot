@@ -32,6 +32,8 @@ class Settings extends BaseEvent
         }
 
         $session = SessionManager::get();
+        $session['game'] = [];
+        $session['history'] = [];
         $session['settings'] = $session['settings'] ?? [
             'id' => null,
             'language' => 'en',
@@ -123,7 +125,7 @@ class Settings extends BaseEvent
     {
         $settingsId = SessionManager::get('settings.id');
         $diff = SessionManager::get('settings.difficulty');
-        $isDiff = fn($d) => $d == $diff ? ' ✅' : '';
+        $isDiff = fn($d) => $d == $diff ? '✅ ' : '';
 
         if (empty($settingsId)) return;
 
@@ -131,9 +133,9 @@ class Settings extends BaseEvent
             'reply_markup' => [
                 'inline_keyboard' => (new InlineKeyboard)
                     ->setRowMax(2)
-                    ->addButton('Easy' . $isDiff('easy'), ['settings:diff' => 'easy'], InlineKeyboard::CALLBACK_DATA)
-                    ->addButton('Medium' . $isDiff('medium'), ['settings:diff' => 'medium'], InlineKeyboard::CALLBACK_DATA)
-                    ->addButton('Hard' . $isDiff('hard'), ['settings:diff' => 'hard'], InlineKeyboard::CALLBACK_DATA)
+                    ->addButton(($isDiff('easy') . 'Easy'), ['settings:diff' => 'easy'], InlineKeyboard::CALLBACK_DATA)
+                    ->addButton(($isDiff('medium') . 'Medium'), ['settings:diff' => 'medium'], InlineKeyboard::CALLBACK_DATA)
+                    ->addButton(($isDiff('hard') . 'Hard'), ['settings:diff' => 'hard'], InlineKeyboard::CALLBACK_DATA)
                     ->toArray(),
             ]
         ])->editMessage($settingsId, 'Choose your difficulty:');

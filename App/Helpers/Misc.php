@@ -80,11 +80,12 @@ class Misc
      *
      * @param array $session
      * @param bool $isCorrectWord
+     * @param bool $isOldGame
      * @return string
      */
-    public static function getTemplate(array $session, bool $isCorrectWord = false): string
+    public static function getTemplate(array $session, bool $isCorrectWord = false, bool $isOldGame = false): string
     {
-        $template = "Today's game: #{gameId}\n\n";
+        $template = ($isOldGame ? 'Current game' : "Today's game") . ": #{gameId}\n\n";
         $template .= "Guesses: {guessCount}\n";
         $template .= "Hints: {hintCount}\n";
         $template .= "Distance: {distance}\n\n";
