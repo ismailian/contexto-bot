@@ -32,8 +32,17 @@ class Settings extends BaseEvent
         }
 
         $session = SessionManager::get();
-        $session['game'] = [];
-        $session['history'] = [];
+	$session['user'] = [
+	    'id' => $this->event['message']['from']['id'],
+	    'first_name' => $this->event['message']['from']['first_name'],
+	    'last_name' => $this->event['message']['from']['last_name'] ?? null,
+	    'username' => $this->event['message']['from']['username'] ?? null,
+	];
+
+	$session['game_session'] = $session['game_session'] ?? null;
+	$session['feedback'] = $session['feedback'] ?? null;
+        $session['game'] = $session['game'] ?? [];
+        $session['history'] = $session['history'] ?? [];
         $session['settings'] = $session['settings'] ?? [
             'id' => null,
             'language' => 'en',
