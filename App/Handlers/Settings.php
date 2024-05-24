@@ -50,7 +50,7 @@ class Settings extends BaseEvent
         ];
 
         $greeting = Misc::getGreeting($this->event['message']['from']['first_name']);
-        $this->telegram->sendMessage($greeting);
+        $this->telegram->sendVideo(getenv('VIDEO_ID'), caption: $greeting, asUrl: true);
 
         unset($session['state']);
         SessionManager::set($session);
