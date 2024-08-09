@@ -155,7 +155,7 @@ class Games extends BaseEvent
         $feedbackId = $session['feedback'] ?? null;
         if ($feedbackId) $this->telegram->deleteMessage($feedbackId);
 
-	$inGame = in_array($session['state'], ['started', 'playing']);
+        $inGame = in_array($session['state'], ['started', 'playing']);
         $inGame = $inGame && !empty($session['game']) && !empty($session['game_session']);
         $session['game'] = [
             'id' => $gameId,
